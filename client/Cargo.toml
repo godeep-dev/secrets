@@ -1,0 +1,12 @@
+[package]
+name = "client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dirs = "4.0.0"
+service = { path = "../service" }
+
+[dev-dependencies]
+server = { path = "../server" }
+tokio = { version = "1.21.1", features = ["full"] }

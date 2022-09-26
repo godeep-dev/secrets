@@ -1,4 +1,4 @@
-//! Server configuration
+//! Configuration
 
 use std::{fs, path::PathBuf};
 
@@ -16,14 +16,14 @@ const DB_FILE: &str = "data.db";
 
 /// Server configuration
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ServerConfig {
+pub struct Config {
     /// Port
     pub port: u16,
     /// Path to the database file (`****.db`)
     pub database: PathBuf,
 }
 
-impl ServerConfig {
+impl Config {
     /// Loads the server configuration file
     ///
     /// Returns [None] if the config file is not found
@@ -65,6 +65,15 @@ impl ServerConfig {
     }
 }
 
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            port: 6666,
+            database: db_file().unwrap(),
+        }
+    }
+}
+
 /// Returns the config dir
 fn config_dir() -> anyhow::Result<PathBuf> {
     let config_dir = dirs::config_dir().ok_or_else(|| anyhow!("Config directory not found"))?;
@@ -85,13 +94,4 @@ fn data_dir() -> anyhow::Result<PathBuf> {
 /// Returns the path to the database file
 fn db_file() -> anyhow::Result<PathBuf> {
     Ok(data_dir()?.join(DB_FILE))
-}
-
-impl Default for ServerConfig {
-    fn default() -> Self {
-        Self {
-            port: 6666,
-            database: db_file().unwrap(),
-        }
-    }
 }

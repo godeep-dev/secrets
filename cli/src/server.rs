@@ -6,8 +6,11 @@ use anyhow::anyhow;
 use clap::Parser;
 use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Confirm, Input};
+use server::{Config, Server};
 
-use crate::server::{Server, ServerConfig};
+// ------------------------------------------------------------------
+// init
+// ------------------------------------------------------------------
 
 /// Init server CLI arguments
 #[derive(Debug, Parser)]
@@ -16,7 +19,7 @@ pub struct InitArgs {}
 /// Initializes the server
 pub async fn init(_args: InitArgs) -> anyhow::Result<()> {
     // Checks if the config exists
-    if let Some(cfg) = ServerConfig::load()? {
+    if let Some(cfg) = Config::load()? {
         eprintln!(
             "{} {}: {}",
             "i".bright_cyan(),
@@ -35,7 +38,7 @@ pub async fn init(_args: InitArgs) -> anyhow::Result<()> {
         eprintln!("{} No config found", "i".bright_cyan());
     }
 
-    let mut config = ServerConfig::default();
+    let mut config = Config::default();
 
     // Ask for server port
     let input_port: u16 = Input::with_theme(&ColorfulTheme::default())
@@ -71,6 +74,10 @@ pub async fn init(_args: InitArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
+// ------------------------------------------------------------------
+// start
+// ------------------------------------------------------------------
+
 /// Start server CLI arguments
 #[derive(Debug, Parser)]
 pub struct StartArgs {}
@@ -78,7 +85,7 @@ pub struct StartArgs {}
 /// Starts the server
 pub async fn start(_args: StartArgs) -> anyhow::Result<()> {
     // Load the configuration
-    let config = ServerConfig::load()?.ok_or_else(|| anyhow!("Config not found"))?;
+    let config = Config::load()?.ok_or_else(|| anyhow!("Config not found"))?;
 
     // Starts the server
     let server = Server::new(config);
@@ -91,6 +98,10 @@ pub async fn start(_args: StartArgs) -> anyhow::Result<()> {
     server.start().await
 }
 
+// ------------------------------------------------------------------
+// info
+// ------------------------------------------------------------------
+
 /// Server info CLI arguments
 #[derive(Debug, Parser)]
 pub struct InfoArgs {}
@@ -98,7 +109,7 @@ pub struct InfoArgs {}
 /// Returns the server info
 pub async fn info(_args: InfoArgs) -> anyhow::Result<()> {
     // Load the configuration
-    let config = ServerConfig::load()?.ok_or_else(|| anyhow!("Config not found"))?;
+    let config = Config::load()?.ok_or_else(|| anyhow!("Config not found"))?;
 
     // Print the server info
     eprintln!("{} {}", "✔".bright_green(), "Server info".bold());

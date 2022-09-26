@@ -1,2 +1,2 @@
 [alias]
-secrets = "run --"
+secrets = "run -p cli --"
