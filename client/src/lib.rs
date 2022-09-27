@@ -2,7 +2,7 @@
 
 #![deny(missing_docs)]
 
-use service::http::HttpClient;
+use service::http::client::HttpClient;
 
-/// Service http client
+/// HTTP client
 pub type Client = HttpClient;

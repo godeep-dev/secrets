@@ -1,94 +1,78 @@
 //! HTTP client
 
-use reqwest::Url;
+use hyper::{body::HttpBody, header, Body, Method, Request};
 
-use crate::error::{Error, Result};
+use crate::{
+    error::Error,
+    traits::{ServiceMethod, StatusSrvMethod},
+    *,
+};
 
-/// Returns a service [HttpClient]
-pub fn client(url: &str) -> Result<HttpClient> {
-    HttpClient::new(url)
-}
+use super::codec::HttpCodec;
 
 /// HTTP client
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct HttpClient {
-    /// Url
-    url: Url,
+    /// API endpoint
+    uri: String,
 }
 
 impl HttpClient {
     /// Instantiates a new [HttpClient]
-    pub fn new(url: &str) -> Result<Self> {
-        Ok(Self {
-            url: Url::parse(url).map_err(|err| Error::internal(err.to_string()))?,
-        })
+    pub fn new(uri: &str) -> Self {
+        Self {
+            uri: uri.to_string(),
+        }
     }
 
-    // /// Sends a request to the server
-    // async fn request<R>(
-    //     &self,
-    //     method: Method,
-    //     path: &str,
-    //     query: Option<R::Query>,
-    //     data: Option<R::ReqBody>,
-    // ) -> Result<R>
-    // where
-    //     R: HttpRoute,
-    // {
-    //     // Prepare the request
-    //     let url = self
-    //         .url
-    //         .join(path)
-    //         .map_err(|err| Error::internal(err.to_string()))?;
-    //     let mut req = reqwest::Client::new().request(method, url);
+    /// Sends a request
+    async fn send_request<T>(&self, params: T::Params) -> Result<T::RetValue>
+    where
+        T: ServiceMethod,
+    {
+        let client = hyper::Client::new();
 
-    //     // Pass the query string
-    //     if let Some(q) = &query {
-    //         req = req.query(q)
-    //     }
+        // Prepare the request
+        let req_body = HttpCodec::encode_request::<T>(params)?;
+        let content_length = req_body.len();
 
-    //     // Pass the body
-    //     if let Some(data) = &data {
-    //         req = req.json(data);
-    //     }
+        // Send the request
+        let req = Request::builder()
+            .method(Method::POST)
+            .uri(&self.uri)
+            .header(header::CONTENT_TYPE, "application/json")
+            .header(header::CONTENT_LENGTH, content_length)
+            .body(Body::from(req_body))
+            .map_err(|err| Error::invalid_body(err.to_string()))?;
+        let mut res = client
+            .request(req)
+            .await
+            .map_err(|err| Error::no_send(err.to_string()))?;
 
-    //     // Send the request
-    //     let res = req
-    //         .send()
-    //         .await
-    //         .map_err(|err| Error::no_send(err.to_string()))?;
+        // Read the body
+        let mut res_body: Vec<u8> = vec![];
+        while let Some(chunk) = res.body_mut().data().await {
+            let bytes = chunk.unwrap();
+            res_body.extend_from_slice(&bytes);
+        }
 
-    //     // Parse the payload
-    //     let status = res.status();
-    //     let payload = res
-    //         .json::<HttpPayload<R, Error>>()
-    //         .await
-    //         .map_err(|err| Error::invalid_body(err.to_string()))?;
-
-    //     if status.is_success() {
-    //         let data = payload
-    //             .data
-    //             .ok_or_else(|| Error::invalid_body("Invalid body: mssing data"))?;
-    //         Ok(data)
-    //     } else if status.is_client_error() || status.is_server_error() {
-    //         let error = payload
-    //             .error
-    //             .ok_or_else(|| Error::invalid_body("Invalid body: mssing error"))?
-    //             .data;
-    //         Err(error)
-    //     } else {
-    //         Err(Error::internal(format!(
-    //             "Invalid API HTTP code: {}",
-    //             status
-    //         )))
-    //     }
-    // }
+        // Process the response
+        let status = res.status();
+        HttpCodec::decode_response::<T>(status, &res_body)
+    }
 }
 
-// impl HttpClient {
-//     /// Get the service status
-//     pub async fn status(&self) -> Result<ServiceStatus> {
-//         self.request::<(), (), ServiceStatus>(Method::GET, "/status", None, None)
-//             .await
-//     }
-// }
+// ---------------------------------------------------------------
+// Service implementation
+//
+// NB: This could be derived by a macro on the trait
+// ---------------------------------------------------------------
+
+// NB: Client methods could be implemented via a macro
+impl HttpClient {
+    /// Returns the service status
+    pub async fn status(&self) -> Result<ServiceStatus> {
+        let params = ();
+        self.send_request::<StatusSrvMethod>(params).await
+    }
+}

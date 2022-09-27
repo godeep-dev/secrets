@@ -4,15 +4,13 @@
 
 use std::{fs, net::SocketAddr, path::PathBuf};
 
-// use axum::{routing::any, Extension};
 use db::DbConn;
 
 mod config;
 mod db;
-mod routes;
 mod service;
 
-use ::service::http::IntoHttpServer;
+use ::service::http::server::HttpServer;
 pub use config::*;
 
 /// Server
@@ -65,20 +63,10 @@ impl Server {
         // Initialize the service
         let service = service::ServiceImpl::new(db_conn);
 
-        let server = service.server();
-        let addr = self.addr();
-        let x = server.start(&addr).await;
-
         // Configure the router
-        // let app = axum::Router::new()
-        //     .route("/*key", any(routes::service_handler))
-        //     .layer(Extension(service));
-
-        // Start the server
-
-        // axum::Server::bind(&addr)
-        //     .serve(app.into_make_service())
-        //     .await?;
+        let addr = self.addr();
+        let http_server = HttpServer::new(service, addr);
+        http_server.start().await;
 
         Ok(())
     }

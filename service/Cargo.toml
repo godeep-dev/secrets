@@ -6,10 +6,10 @@ publish = false
 
 [features]
 default = ["http"]
-http = ["dep:axum", "dep:reqwest"]
+http = ["dep:hyper", "dep:serde_json"]
 
 [dependencies]
 async-trait = "0.1.57"
-axum = { version = "0.5.16", optional = true }
-reqwest = { version = "0.11.12", features = ["json"], optional = true }
+hyper = { version = "0.14.20", features = ["full"], optional = true }
 serde = { version = "1.0.144", features = ["derive"] }
+serde_json = { version = "1.0.85", optional = true }
