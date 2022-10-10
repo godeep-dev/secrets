@@ -6,6 +6,7 @@ publish = false
 
 [dependencies]
 anyhow = "1.0.65"
+async-trait = "0.1.57"
 dirs = "4.0.0"
 serde = { version = "1.0.144", features = ["derive"] }
 service = { path = "../service" }

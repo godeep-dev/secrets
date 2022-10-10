@@ -4,13 +4,13 @@
 
 use std::{fs, net::SocketAddr, path::PathBuf};
 
+use ::service::rpc;
 use db::DbConn;
 
 mod config;
 mod db;
 mod service;
 
-use ::service::http::server::HttpServer;
 pub use config::*;
 
 /// Server
@@ -61,12 +61,15 @@ impl Server {
         let db_conn = self.db().await?;
 
         // Initialize the service
-        let service = service::ServiceImpl::new(db_conn);
+        let handler = service::Service::new(db_conn);
 
         // Configure the router
+        let receiver = rpc::json::JsonTransport::new();
+        let server = rpc::Server::new(receiver, handler);
         let addr = self.addr();
-        let http_server = HttpServer::new(service, addr);
-        http_server.start().await;
+        if let Err(err) = server.start(&addr).await {
+            eprintln!("SERVER ERROR: {err}");
+        };
 
         Ok(())
     }

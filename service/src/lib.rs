@@ -2,73 +2,83 @@
 
 #![deny(missing_docs)]
 
+use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-pub mod error;
-#[cfg(feature = "http")]
-pub mod http;
-pub mod traits;
-
-use error::Result;
-
-/// Re-export of the `async_trait` macro
-pub use async_trait::async_trait;
+pub mod gen;
 
 // ---------------------------------------------------------------
 // SERVICE DEFINITION
 // ---------------------------------------------------------------
 
-/// The [Service] is the interface between the server and client
+/// The secrets service is the interface between the server and client
 #[async_trait]
-pub trait Service: Clone + Send + Sync + 'static {
+pub trait SecretsService {
     /// Returns the API status
-    async fn status(&self) -> Result<ServiceStatus>;
+    async fn status(&self) -> Result<ServiceStatus, Error>;
 
     /// Signup a new user
-    async fn signup(&self, input: SignupInput) -> Result<LoginResponse>;
+    async fn signup(&self, input: SignupInput) -> Result<LoginResponse, Error>;
 
     /// Login a new user
-    async fn login(&self, input: LoginInput) -> Result<LoginResponse>;
+    async fn login(&self, input: LoginInput) -> Result<LoginResponse, Error>;
 
     /// Reads a user
-    async fn user(&self, token: String, id: String) -> Result<User>;
+    async fn user(&self, token: String, id: String) -> Result<User, Error>;
 
     /// Deletes a user
-    async fn delete_user(&self, token: String, id: String) -> Result<User>;
+    async fn delete_user(&self, token: String, id: String) -> Result<User, Error>;
 
     /// Add an organization
     async fn add_organization(
         &self,
         token: String,
         organization: OrganizationInput,
-    ) -> Result<Organization>;
+    ) -> Result<Organization, Error>;
 
     /// Reads an organization
-    async fn organization(&self, token: String, id: String) -> Result<Organization>;
+    async fn organization(&self, token: String, id: String) -> Result<Organization, Error>;
 
     /// Deletes an organization
-    async fn delete_organization(&self, token: String, id: String) -> Result<Organization>;
+    async fn delete_organization(&self, token: String, id: String) -> Result<Organization, Error>;
 
     /// Add a project
-    async fn add_project(&self, token: String, project: ProjectInput) -> Result<Project>;
+    async fn add_project(&self, token: String, project: ProjectInput) -> Result<Project, Error>;
 
     /// Reads a project
-    async fn project(&self, token: String, id: String) -> Result<Project>;
+    async fn project(&self, token: String, id: String) -> Result<Project, Error>;
 
     /// Deletes a project
-    async fn delete_project(&self, token: String, id: String) -> Result<Project>;
+    async fn delete_project(&self, token: String, id: String) -> Result<Project, Error>;
 
     /// Adds a secret
-    async fn add_secret(&self, token: String, secret: SecretInput) -> Result<Secret>;
+    async fn add_secret(&self, token: String, secret: SecretInput) -> Result<Secret, Error>;
 
     /// Reads a secret
-    async fn secret(&self, token: String, id: String) -> Result<Secret>;
+    async fn secret(&self, token: String, id: String) -> Result<Secret, Error>;
 
     /// Update a secret
-    async fn update_secret(&self, token: String, secret: Secret) -> Result<Secret>;
+    async fn update_secret(&self, token: String, secret: Secret) -> Result<Secret, Error>;
 
     /// Deletes a secret
-    async fn delete_secret(&self, token: String, id: String) -> Result<Secret>;
+    async fn delete_secret(&self, token: String, id: String) -> Result<Secret, Error>;
+}
+
+// ---------------------------------------------------------------
+// ERROR
+// ---------------------------------------------------------------
+
+/// Service error
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Error {
+    /// Message
+    pub message: String,
+}
+
+impl From<String> for Error {
+    fn from(message: String) -> Self {
+        Self { message }
+    }
 }
 
 // ---------------------------------------------------------------
